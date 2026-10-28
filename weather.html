@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Poppins', sans-serif;
+            background: url('https://wallpaperaccess.com/full/1096121.jpg') no-repeat center center fixed;
+            background-size: cover;
+            color: #fff;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: rgba(0, 0, 0, 0.6);
+            text-align: center;
+            padding: 20px;
+            font-size: 2rem;
+            font-weight: 600;
+            backdrop-filter: blur(8px);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            letter-spacing: 2px;
+            animation: fadeInDown 1s ease-out;
+        }
+
+        #search-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 25px;
+            gap: 12px;
+        }
+
+        #search-box input {
+            width: 270px;
+            padding: 12px 16px;
+            font-size: 1rem;
+            border-radius: 12px;
+            border: none;
+            outline: none;
+            color: #fff;
+
+            background: rgba(255, 255, 255, 0.25);
+            backdrop-filter: blur(6px);
+
+            transition: 0.25s;
+        }
+
+        #search-box input::placeholder {
+            color: #eee;
+        }
+
+        #search-box input:focus {
+            transform: scale(1.05);
+            box-shadow: 0 0 15px #00c6ff;
+        }
+
+        #search-box button {
+            padding: 12px 24px;
+            font-size: 1rem;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+
+            background: linear-gradient(135deg, #0078ff, #00c6ff);
+            color: white;
+
+            transition: 0.25s;
+        }
+
+        #search-box button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(0, 200, 255, 0.5);
+        }
+
+        #weather-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .info {
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 12px;
+            padding: 25px 40px;
+            margin: 25px;
+            text-align: center;
+            box-shadow: 0 0 25px rgba(255, 255, 255, 0.1);
+            width: 80%;
+            max-width: 600px;
+            animation: fadeInUp 1s ease-out;
+            transition: transform 0.3s;
+        }
+
+        .info:hover {
+            transform: scale(1.02);
+        }
+
+        #forecast {
+            display: flex;
+            overflow-x: auto;
+            justify-content: center;
+            margin-top: 10px;
+            padding: 10px;
+            flex-wrap: wrap;
+            width: 90%;
+            max-width: 1000px;
+        }
+
+        .day {
+            background: rgba(255, 255, 255, 0.1);
+            margin: 10px;
+            padding: 15px;
+            border-radius: 10px;
+            min-width: 120px;
+            text-align: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            animation: fadeIn 1.5s ease-in;
+        }
+
+        .day:hover {
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
+        }
+
+        #map {
+            width: 90%;
+            height: 400px;
+            margin: 40px auto;
+            border-radius: 12px;
+            box-shadow: 0 0 30px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 5;
+            overflow: hidden;
+            animation: fadeInUp 1.5s ease-out;
+        }
+
+        .leaflet-popup-content-wrapper, .leaflet-popup-tip {
+            background: #1e293b !important;
+            color: #fff !important;
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        }
+
+        .leaflet-popup-content {
+            font-family: 'Poppins', sans-serif !important;
+            color: #f1f5f9 !important;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 12px 16px !important;
+        }
+
+        .leaflet-container {
+            font-family: 'Poppins', sans-serif !important;
+        }
+
+        footer {
+            text-align: center;
+            padding: 20px;
+            color: #bbb;
+            font-size: 0.9rem;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(5px);
+            animation: fadeIn 2s ease-in;
+        }
+
+        .weather-effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+            overflow: hidden;
+        }
+
+        .flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.8);
+            opacity: 0;
+            z-index: 2;
+            animation: lightningFlash 6s infinite;
+        }
+
+        @keyframes lightningFlash {
+
+            0%,
+            94%,
+            100% {
+                opacity: 0;
+            }
+
+            95% {
+                opacity: 0.7;
+            }
+
+            96% {
+                opacity: 0;
+            }
+
+            97% {
+                opacity: 0.3;
+            }
+
+            98% {
+                opacity: 0;
+            }
+
+            99% {
+                opacity: 0.5;
+            }
+        }
+
+        .bolt {
+            position: absolute;
+            width: 2px;
+            height: 120px;
+            background: white;
+            box-shadow: 0 0 20px 5px white;
+            opacity: 0;
+            z-index: 3;
+            animation: boltStrike 6s infinite;
+        }
+
+        .bolt::before,
+        .bolt::after {
+            content: '';
+            position: absolute;
+            width: 2px;
+            background: white;
+            box-shadow: 0 0 10px white;
+        }
+
+        .bolt::before {
+            height: 70px;
+            top: 100%;
+            left: -6px;
+            transform: rotate(15deg);
+        }
+
+        .bolt::after {
+            height: 50px;
+            top: 170%;
+            left: 4px;
+            transform: rotate(-20deg);
+        }
+
+        @keyframes boltStrike {
+
+            0%,
+            94%,
+            100% {
+                opacity: 0;
+            }
+
+            95% {
+                opacity: 1;
+                transform: scaleY(1.2);
+            }
+
+            96% {
+                opacity: 0.6;
+                transform: scaleY(0.9);
+            }
+
+            97% {
+                opacity: 0;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <header>🌩️ WEATHER FORECAST</header>
+
+
+    <div id="search-box">
+        <input type="text" id="cityInput" placeholder="Enter city name..." />
+        <button onclick="getWeather()">Search</button>
+    </div>
+
+    <div id="weather-container">
+        <div class="info" id="currentWeather">Enter a city to get started!</div>
+        <div id="forecast"></div>
+        <div id="map"></div>
+    </div>
+
+    <div id="weatherEffect" class="weather-effect"></div>
+
+    <footer>Powered by Open-Meteo & OpenStreetMap | © 2025 WeatherPro</footer>
+
+    <script>
+        const currentWeather = document.getElementById("currentWeather");
+        const forecastDiv = document.getElementById("forecast");
+        const mapContainer = document.getElementById("map");
+        const weatherEffect = document.getElementById("weatherEffect");
+        let map;
+
+
+        document.getElementById("cityInput").addEventListener("keydown", function (e) {
+            if (e.key === "Enter") getWeather();
+        });
+
+        async function getWeather() {
+            const city = document.getElementById("cityInput").value.trim();
+            if (!city) return alert("Please enter a city name!");
+
+            currentWeather.innerHTML = "Fetching weather data...";
+            forecastDiv.innerHTML = "";
+            weatherEffect.innerHTML = "";
+            if (map) {
+                map.remove();
+                map = null;
+            }
+            mapContainer.innerHTML = "";
+
+            try {
+                let lat, lon, display_name;
+
+                // 1. Primary geocoding via Open-Meteo (fast, CORS-enabled, no Referer/rate restrictions)
+                try {
+                    const geoRes = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+                    const geoData = await geoRes.json();
+                    if (geoData && geoData.results && geoData.results.length > 0) {
+                        const place = geoData.results[0];
+                        lat = place.latitude;
+                        lon = place.longitude;
+                        display_name = [place.name, place.admin1, place.country].filter(Boolean).join(", ");
+                    }
+                } catch (e) {
+                    console.warn("Open-Meteo geocoding fallback triggered:", e);
+                }
+
+                // 2. Fallback to Nominatim if needed
+                if (!lat || !lon) {
+                    const nomRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(city)}&format=json&limit=1`);
+                    const nomData = await nomRes.json();
+                    if (!nomData || !nomData.length) throw new Error("City not found! Please check the spelling.");
+                    lat = parseFloat(nomData[0].lat);
+                    lon = parseFloat(nomData[0].lon);
+                    display_name = nomData[0].display_name;
+                }
+
+                const weatherUrl = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,weathercode&daily=temperature_2m_max,temperature_2m_min,weathercode&timezone=auto`;
+                const weatherRes = await fetch(weatherUrl);
+                const weatherData = await weatherRes.json();
+
+                const current = weatherData.current;
+                const daily = weatherData.daily;
+
+                const condition = codeToWeather(current.weathercode);
+                addWeatherEffect(condition);
+
+                currentWeather.innerHTML = `
+          <h2>${display_name}</h2>
+          <p>🌡️ ${Math.round(current.temperature_2m)}°C | ${condition}</p>
+          <p>💧 Humidity: ${current.relative_humidity_2m}%</p>
+        `;
+
+                displayForecast(daily);
+                updateMap(lat, lon, display_name, Math.round(current.temperature_2m), condition);
+            } catch (error) {
+                currentWeather.innerHTML = `<p style="color:red;">${error.message}</p>`;
+            }
+        }
+
+        function displayForecast(daily) {
+            forecastDiv.innerHTML = "<h2 style='width:100%;text-align:center;'>7-Day Forecast</h2>";
+            for (let i = 0; i < daily.time.length; i++) {
+                const date = new Date(daily.time[i]).toLocaleDateString("en-US", { weekday: "short" });
+                const condition = codeToWeather(daily.weathercode[i]);
+                forecastDiv.innerHTML += `
+          <div class="day">
+            <h3>${date}</h3>
+            <p>⬆️ ${Math.round(daily.temperature_2m_max[i])}°C</p>
+            <p>⬇️ ${Math.round(daily.temperature_2m_min[i])}°C</p>
+            <p>${condition}</p>
+          </div>
+        `;
+            }
+        }
+
+        function updateMap(lat, lon, cityName, temp, condition) {
+            if (map) {
+                map.remove();
+                map = null;
+            }
+            mapContainer.innerHTML = "";
+
+            map = L.map("map", {
+                center: [lat, lon],
+                zoom: 10,
+                scrollWheelZoom: true
+            });
+
+            // CartoDB Dark Matter (No Referer restrictions, matches dark theme, solves "Access blocked")
+            const cartoDark = L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
+                maxZoom: 19,
+                subdomains: "abcd",
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            });
+
+            // CartoDB Voyager (Streets view, no Referer restrictions)
+            const cartoVoyager = L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+                maxZoom: 19,
+                subdomains: "abcd",
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+            });
+
+            // Standard OSM with referrerPolicy
+            const osm = L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+                maxZoom: 19,
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                referrerPolicy: "origin"
+            });
+
+            // Default to dark map layer
+            cartoDark.addTo(map);
+
+            // Layer selector control
+            const baseMaps = {
+                "Dark Theme": cartoDark,
+                "Streets": cartoVoyager,
+                "OpenStreetMap": osm
+            };
+            L.control.layers(baseMaps, null, { position: "topright" }).addTo(map);
+
+            // Add marker with informative popup
+            const marker = L.marker([lat, lon]).addTo(map);
+            const popupContent = `
+                <div style="text-align: center; min-width: 140px;">
+                    <strong style="font-size: 0.95rem; color: #fff;">${cityName ? cityName.split(',')[0] : 'Location'}</strong><br/>
+                    ${temp !== undefined ? `<span style="font-size: 1.1rem; color: #38bdf8; font-weight: 600;">${temp}°C</span> <span style="color:#cbd5e1;">| ${condition || ''}</span><br/>` : ''}
+                    <small style="color: #94a3b8; font-size: 0.75rem;">Lat: ${Number(lat).toFixed(3)}, Lon: ${Number(lon).toFixed(3)}</small>
+                </div>
+            `;
+            marker.bindPopup(popupContent).openPopup();
+
+            // Refresh tile dimensions after render animation completes
+            setTimeout(() => {
+                if (map) map.invalidateSize();
+            }, 300);
+        }
+
+        function codeToWeather(code) {
+            const weatherCodes = {
+                0: "Clear sky",
+                1: "Mainly clear",
+                2: "Partly cloudy",
+                3: "Overcast",
+                45: "Fog",
+                48: "Rime fog",
+                51: "Light drizzle",
+                53: "Moderate drizzle",
+                55: "Dense drizzle",
+                61: "Slight rain",
+                63: "Moderate rain",
+                65: "Heavy rain",
+                71: "Slight snow",
+                73: "Moderate snow",
+                75: "Heavy snow",
+                95: "Thunderstorm",
+                99: "Severe thunderstorm"
+            };
+            return weatherCodes[code] || "Unknown";
+        }
+
+        function addWeatherEffect(condition) {
+            const lower = condition.toLowerCase();
+            weatherEffect.innerHTML = "";
+
+            if (lower.includes("thunder")) {
+                const flash = document.createElement("div");
+                flash.classList.add("flash");
+                weatherEffect.appendChild(flash);
+
+                for (let i = 0; i < 2; i++) {
+                    const bolt = document.createElement("div");
+                    bolt.classList.add("bolt");
+                    bolt.style.left = Math.random() * 80 + "vw";
+                    bolt.style.top = Math.random() * 40 + "vh";
+                    bolt.style.animationDelay = Math.random() * 6 + "s";
+                    weatherEffect.appendChild(bolt);
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>
